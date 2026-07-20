@@ -64,11 +64,6 @@ def exact_match(predicted, gold_answers):
     return 1.0 if any(normalize_answer(g) == norm_pred for g in gold_answers) else 0.0
 
 
-def sub_exact_match(predicted, gold_answers):
-    norm_pred = normalize_answer(predicted)
-    return 1.0 if any(normalize_answer(g) in norm_pred for g in gold_answers) else 0.0
-
-
 def token_f1(predicted, gold_answers):
     norm_pred = normalize_answer(predicted)
     pred_tokens = norm_pred.split()
@@ -97,61 +92,6 @@ def math_verify_match(predicted, gold):
         return 1.0 if verify(gold_parsed, pred_parsed) else 0.0
     except Exception:
         return 0.0
-
-
-def back_translate(braille_text, grade):
-    import louis
-    table = "en-ueb-g1.ctb" if "1" in grade else "en-ueb-g2.ctb"
-    try:
-        return louis.backTranslateString([table], braille_text)
-    except Exception:
-        return braille_text
-
-
-def is_english_not_braille(text):
-    if re.search(r"[A-Z]", text):
-        return True
-    if re.search(r"[0-9]", text):
-        return True
-    return False
-
-
-def compute_english_metrics(predicted, gold_answers, dataset_name):
-    metrics = {
-        "em": exact_match(predicted, gold_answers),
-        "sub_em": sub_exact_match(predicted, gold_answers),
-        "f1": token_f1(predicted, gold_answers),
-    }
-    if dataset_name in ("gsm8k", "aime24"):
-        metrics["math_verify"] = math_verify_match(predicted, gold_answers[0])
-    return metrics
-
-
-def compute_braille_output_metrics(predicted_braille, gold_english, grade, dataset_name):
-    wrote_english = is_english_not_braille(predicted_braille)
-    if wrote_english:
-        metrics = {
-            "em": 0.0,
-            "sub_em": 0.0,
-            "f1": 0.0,
-            "wrote_english": True,
-            "back_translated": "",
-        }
-        if dataset_name in ("gsm8k", "aime24"):
-            metrics["math_verify"] = 0.0
-        return metrics
-
-    pred_en = back_translate(predicted_braille, grade)
-    metrics = {
-        "em": exact_match(pred_en, gold_english),
-        "sub_em": sub_exact_match(pred_en, gold_english),
-        "f1": token_f1(pred_en, gold_english),
-        "wrote_english": False,
-        "back_translated": pred_en,
-    }
-    if dataset_name in ("gsm8k", "aime24"):
-        metrics["math_verify"] = math_verify_match(pred_en, gold_english[0])
-    return metrics
 
 
 def clean_response(response):
@@ -273,66 +213,48 @@ def run_evaluation(model_name, dataset_name, config_name, braille_format=None, o
     out_dir.mkdir(parents=True, exist_ok=True)
     detail_path = out_dir / f"{tag}_details.jsonl"
 
-    start_idx = 0
-    metric_accum = {}
     if detail_path.exists():
-        with open(detail_path) as f:
-            for line in f:
-                if not line.strip():
-                    continue
-                start_idx += 1
-                try:
-                    existing = json.loads(line)
-                    for k, v in existing.get("metrics", {}).items():
-                        if isinstance(v, (int, float, bool)):
-                            metric_accum.setdefault(k, []).append(float(v))
-                except json.JSONDecodeError:
-                    pass
-        if start_idx >= len(records):
-            print(f"SKIP {tag} (complete: {start_idx}/{len(records)})")
-            return
-        print(f"RESUME {tag} from {start_idx}/{len(records)}")
+        print(f"SKIP {tag}")
+        return
 
     print(f"\n{'='*60}")
     print(f"{tag} ({len(records)} records)")
     print(f"{'='*60}")
 
+    results = []
+    metric_accum = {}
     start = time.time()
 
-    with open(detail_path, "a") as out_f:
-        for i in range(start_idx, len(records)):
-            rec = records[i]
-            gold_answers = get_gold_answers(rec, dataset_name)
-            prompt = make_prompt(dataset_name, rec, config, braille_format)
-            max_tok = 4096 if dataset_name == "aime24" else 1024
+    for i, rec in enumerate(records):
+        gold_answers = get_gold_answers(rec, dataset_name)
+        prompt = make_prompt(dataset_name, rec, config, braille_format)
+        max_tok = 4096 if dataset_name == "aime24" else 1024
 
-            response = invoke_local_model(model_name, prompt, max_tokens=max_tok, temperature=0.0)
-            predicted = extract_answer(response)
+        response = invoke_local_model(model_name, prompt, max_tokens=max_tok, temperature=0.0)
+        predicted = extract_answer(response)
 
-            if output_type in ("grade1", "grade2"):
-                metrics = compute_braille_output_metrics(predicted, gold_answers, output_type, dataset_name)
-            else:
-                metrics = compute_english_metrics(predicted, gold_answers, dataset_name)
+        if output_type in ("grade1", "grade2"):
+            braille_gold = get_braille_gold(rec, dataset_name, output_type, braille_format)
+            metrics = {"em": exact_match(predicted, braille_gold), "f1": token_f1(predicted, braille_gold)}
+        else:
+            metrics = {"em": exact_match(predicted, gold_answers), "f1": token_f1(predicted, gold_answers)}
+            if dataset_name in ("gsm8k", "aime24"):
+                metrics["math_verify"] = math_verify_match(predicted, gold_answers[0])
 
-            for k, v in metrics.items():
-                if isinstance(v, (int, float, bool)):
-                    metric_accum.setdefault(k, []).append(float(v))
+        for k, v in metrics.items():
+            metric_accum.setdefault(k, []).append(v)
 
-            result = {
-                "id": rec.get("id", i),
-                "gold_answer": gold_answers,
-                "predicted": predicted,
-                "metrics": metrics,
-                "full_response": response,
-            }
-            out_f.write(json.dumps(result, ensure_ascii=False) + "\n")
-            out_f.flush()
+        results.append({"id": rec.get("id", i), "predicted": predicted, "metrics": metrics, "full_response": response})
 
-            if (i + 1) % 20 == 0:
-                elapsed = time.time() - start
-                primary = "math_verify" if (dataset_name in ("gsm8k", "aime24") and output_type == "english") else "em"
-                score = sum(metric_accum.get(primary, [0])) / max(len(metric_accum.get(primary, [1])), 1) * 100
-                print(f"  [{i+1}/{len(records)}] {primary}={score:.1f}% ({elapsed:.0f}s)")
+        if (i + 1) % 50 == 0:
+            elapsed = time.time() - start
+            primary = "math_verify" if (dataset_name in ("gsm8k", "aime24") and output_type == "english") else "em"
+            score = sum(metric_accum.get(primary, [0])) / max(len(metric_accum.get(primary, [1])), 1) * 100
+            print(f"  [{i+1}/{len(records)}] {primary}={score:.1f}% ({elapsed:.0f}s)")
+
+    with open(detail_path, "w") as f:
+        for r in results:
+            f.write(json.dumps(r, ensure_ascii=False) + "\n")
 
     elapsed = time.time() - start
     summary = {k: sum(v)/len(v) for k, v in metric_accum.items()}
@@ -347,40 +269,18 @@ def main():
     parser.add_argument("--formats", nargs="+", default=["ascii"])
     parser.add_argument("--datasets", nargs="+", default=None)
     parser.add_argument("--output-dir", default=None)
-    parser.add_argument("--num-shards", type=int, default=1,
-                        help="Total number of independent workers splitting evaluation jobs.")
-    parser.add_argument("--shard-index", type=int, default=0,
-                        help="Zero-based worker index for this process.")
     args = parser.parse_args()
 
     datasets = args.datasets or list(DATASETS.keys())
-    if args.num_shards < 1:
-        parser.error("--num-shards must be >= 1")
-    if args.shard_index < 0 or args.shard_index >= args.num_shards:
-        parser.error("--shard-index must satisfy 0 <= shard-index < num-shards")
-
-    jobs = []
 
     if args.mode == "baseline":
         for ds in datasets:
-            jobs.append((ds, "EN-EN", None))
+            run_evaluation(args.model, ds, "EN-EN", output_dir=args.output_dir)
     else:
         for cfg in args.configs:
             for fmt in args.formats:
                 for ds in datasets:
-                    jobs.append((ds, cfg, fmt))
-
-    selected_jobs = [
-        job for idx, job in enumerate(jobs)
-        if idx % args.num_shards == args.shard_index
-    ]
-    print(
-        f"Worker {args.shard_index}/{args.num_shards}: "
-        f"{len(selected_jobs)} of {len(jobs)} jobs"
-    )
-
-    for ds, cfg, fmt in selected_jobs:
-        run_evaluation(args.model, ds, cfg, fmt, output_dir=args.output_dir)
+                    run_evaluation(args.model, ds, cfg, fmt, output_dir=args.output_dir)
 
 
 if __name__ == "__main__":

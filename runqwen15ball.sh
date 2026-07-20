@@ -14,11 +14,11 @@ mkdir -p data/results/local logs
 echo "== Qwen3-1.5B BrailleBench local inference =="
 date
 echo "Project: $(pwd)"
+
 ORIGINAL_CUDA_VISIBLE_DEVICES="${CUDA_VISIBLE_DEVICES:-}"
 GPU_COUNT="${BRAILLE_GPU_COUNT:-}"
 if [[ -z "$GPU_COUNT" ]]; then
   GPU_COUNT="$(python - <<'PY'
-import os
 try:
     import torch
     count = torch.cuda.device_count() if torch.cuda.is_available() else 0
@@ -67,41 +67,20 @@ run_one_worker() {
     echo "== Worker ${worker}/${total} started =="
     date
     echo "CUDA_VISIBLE_DEVICES=${device_id}"
-
-    echo
-    echo "== EN-EN baseline shard =="
-    CUDA_VISIBLE_DEVICES="${device_id}" python src/run_local_eval.py \
+    CUDA_VISIBLE_DEVICES="${device_id}" python scripts/run_qwen15b_worker.py \
       --model qwen3-1.5b \
-      --mode baseline \
-      --datasets gsm8k aime24 commonsenseqa hotpotqa 2wikimultihopqa \
       --output-dir data/results/local \
-      --num-shards "${total}" \
-      --shard-index "${worker}"
-
-    echo
-    echo "== Braille configs ASCII shard =="
-    CUDA_VISIBLE_DEVICES="${device_id}" python src/run_local_eval.py \
-      --model qwen3-1.5b \
-      --mode braille \
-      --configs EN-G1 EN-G2 G1-EN G2-EN G1-G1 G2-G2 \
-      --formats ascii \
-      --datasets gsm8k aime24 commonsenseqa hotpotqa 2wikimultihopqa \
-      --output-dir data/results/local \
-      --num-shards "${total}" \
-      --shard-index "${worker}"
-
-    echo
+      --num-workers "${total}" \
+      --worker-index "${worker}"
     echo "== Worker ${worker}/${total} done =="
     date
   } 2>&1 | tee "${log_file}"
 }
 
 if [[ "$GPU_COUNT" -eq 1 ]]; then
-  echo
   echo "== Single-GPU run =="
   run_one_worker 0 1
 else
-  echo
   echo "== Multi-GPU sharded run (${GPU_COUNT} workers) =="
   pids=()
   for worker in $(seq 0 $((GPU_COUNT - 1))); do
@@ -121,6 +100,5 @@ else
   fi
 fi
 
-echo
 echo "== Done =="
 date

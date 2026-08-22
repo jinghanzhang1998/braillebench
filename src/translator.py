@@ -12,7 +12,7 @@ Output formats:
 import os
 import louis
 
-os.environ.setdefault("LOUIS_TABLEPATH", "/Users/jinghanz/local/share/liblouis/tables")
+os.environ.setdefault("LOUIS_TABLEPATH", os.environ.get("LOUIS_TABLEPATH", ""))
 
 TABLES = {
     "grade1": ["en-ueb-g1.ctb"],

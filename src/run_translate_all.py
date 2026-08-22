@@ -14,7 +14,7 @@ import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
-os.environ.setdefault("LOUIS_TABLEPATH", "/Users/jinghanz/local/share/liblouis/tables")
+os.environ.setdefault("LOUIS_TABLEPATH", os.environ.get("LOUIS_TABLEPATH", ""))
 
 from translator import translate_text
 from latex_preprocess import preprocess_text

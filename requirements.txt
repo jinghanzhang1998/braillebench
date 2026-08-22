@@ -1,23 +1,11 @@
-# Core evaluation dependencies
-boto3>=1.40.0
+# Core scoring dependencies. Python 3.10-3.13 is recommended.
 math-verify==0.9.0
 latex2sympy2_extended==1.11.0
 sympy==1.14.0
 antlr4-python3-runtime==4.13.2
 
-# Dataset loading (for re-downloading raw data if needed)
-datasets>=3.0.0
-
-# Local GPU model inference (Qwen3-1.5B)
-transformers>=4.40.0
-torch>=2.0.0
-accelerate>=0.30.0
-
-# Braille translation (liblouis Python binding)
-# NOTE: The `louis` python module needs the liblouis C library installed separately.
-# On macOS it was built from source to /Users/jinghanz/local/.
-# On the new device, install via: conda install -c conda-forge liblouis
-#   OR apt-get install liblouis-bin liblouis-dev (Linux)
-#   then: pip install louis (or build python binding from liblouis source)
-# The louis python module __init__.py may need patching to load the correct .so/.dylib
-# (see MIGRATION_GUIDE.md).
+# Braille translation/back-translation uses liblouis and its `louis` Python
+# binding. Install both with conda-forge (`conda install -c conda-forge
+# liblouis`) or build the official liblouis source with Python bindings.
+# There is no reliable standalone pip-only installation, so it is not listed
+# as a PyPI dependency here.

@@ -1,13 +1,13 @@
 # BrailleBench
 
 BrailleBench evaluates whether a language model can read and write Unified English Braille
-(UEB) while solving reasoning and question-answering tasks. It provides parallel English,
-Grade 1 (uncontracted), and Grade 2 (contracted) data in Braille ASCII, Unicode Braille,
-and dot-number notation, together with a provider-neutral evaluation harness.
+(UEB) while solving reasoning and question-answering tasks. Its primary evaluation surface is
+six-dot UEB encoded as Braille ASCII. The release also provides synchronized Unicode Braille and
+dot-number representations, parallel English fields, and a provider-neutral evaluation harness.
 
-This repository is a release candidate. Before making the data public, review the upstream
-redistribution notes in [DATA_LICENSES.md](DATA_LICENSES.md), especially the AIME 2024 and
-CommonsenseQA entries, and choose a license for the BrailleBench-authored code.
+Version `0.1.0` is the first public release. It includes directly usable Braille records for all
+five benchmark datasets. BrailleBench does not relicense the source questions and answers;
+dataset-specific attribution and terms are documented in [DATA_LICENSES.md](DATA_LICENSES.md).
 
 ## What it tests
 
@@ -38,6 +38,10 @@ matrix unless reported explicitly.
 | HotpotQA | dev | 7,405 | Multi-hop QA | Exact Match |
 | 2WikiMultiHopQA | dev | 12,576 | Multi-hop QA | Exact Match |
 
+The complete release contains 22,551 logical records. Each record retains source attribution
+through its dataset membership and is distributed with the dataset-specific notices in
+`DATA_LICENSES.md`.
+
 Each logical record appears in six files:
 
 ```text
@@ -60,7 +64,7 @@ The benchmark uses the liblouis UEB tables `en-ueb-g1.ctb` and `en-ueb-g2.ctb`.
 
 ## Installation
 
-Python 3.10-3.13 is recommended. The most reproducible setup uses conda-forge because
+Python 3.10-3.13 is supported. The reference environment uses Python 3.11 and conda-forge because
 liblouis includes a native library and Python bindings:
 
 ```bash
@@ -221,16 +225,34 @@ src/validate_release.py    data/checksum audit
 src/translator.py          liblouis translation helpers
 tests/                     regression tests
 DATA_MANIFEST.json         counts, sizes, and SHA-256 checksums
-DATA_LICENSES.md           upstream attribution and publication cautions
+DATA_LICENSES.md           upstream attribution and dataset terms
+THIRD_PARTY_NOTICES.md     consolidated third-party notices
+LICENSE                    MIT license for BrailleBench-authored code
+CITATION.cff               machine-readable citation metadata
+RELEASE_NOTES.md           versioned release summary
 ```
 
 ## Citation
 
-The BrailleBench paper citation will be added when the paper record is public. Until then,
-cite this repository version and the upstream datasets listed in `DATA_LICENSES.md`.
+Please cite the versioned repository release until the associated paper record is available:
+
+```bibtex
+@dataset{zhang2026braillebench,
+  author    = {Jinghan Zhang},
+  title     = {BrailleBench},
+  year      = {2026},
+  version   = {0.1.0},
+  publisher = {GitHub},
+  url       = {https://github.com/jinghanzhang1998/braillebench}
+}
+```
+
+Also cite the upstream datasets used in the evaluation. GitHub-compatible citation metadata is
+provided in [CITATION.cff](CITATION.cff).
 
 ## License
 
-No project-wide BrailleBench code license has been selected yet. Add a code license before
-making the GitHub repository public. Translated benchmark records remain subject to their
-upstream dataset terms; see [DATA_LICENSES.md](DATA_LICENSES.md).
+BrailleBench-authored code is released under the [MIT License](LICENSE). The MIT License does not
+relicense source questions, answers, or other third-party dataset content contained in translated
+records. Those materials remain subject to their upstream terms; see
+[DATA_LICENSES.md](DATA_LICENSES.md).

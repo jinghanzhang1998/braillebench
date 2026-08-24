@@ -1,25 +1,27 @@
-# Data licenses and attribution
+# Data sources, attribution, and terms
 
 This file documents the upstream sources used to construct BrailleBench. The Braille
 translations are transformations of upstream questions and answers; distributing a transformed
 copy does not erase the original rights or attribution requirements.
 
-This is a release audit, not legal advice. Verify the terms with your institution or the
-rightsholder before publishing the data.
+BrailleBench 0.1.0 includes the complete set of translated records for reproducible research.
+The MIT License at the repository root covers BrailleBench-authored code, not third-party source
+questions or answers. Braille conversion does not replace or broaden upstream permissions.
 
-## Publication status
+## Included datasets
 
-| Dataset | Upstream source | Upstream terms found | Public redistribution status |
+| Dataset | Upstream source | Upstream terms and release scope |
 |---|---|---|---|
-| GSM8K | [OpenAI grade-school-math](https://github.com/openai/grade-school-math) | MIT license in the official repository | License text/notice must accompany redistributed material |
-| AIME 2024 | Mathematical Association of America | Competition problems are copyrighted; no open dataset license was identified | **Hold** until written permission or another documented legal basis is obtained |
-| CommonsenseQA | [Official repository](https://github.com/jonathanherzig/commonsenseqa) | The official repository provides data links and citation information but no license file was found | **Hold** until the authors/rightsholder confirm redistribution terms |
-| HotpotQA | [Official site](https://hotpotqa.github.io/) | Dataset distributed under CC BY-SA 4.0 | Attribute and distribute adaptations under compatible share-alike terms |
-| 2WikiMultiHopQA | [Official repository](https://github.com/Alab-NII/2wikimultihop) | Apache License 2.0 | Include the Apache 2.0 license and required notices |
+| GSM8K | [OpenAI grade-school-math](https://github.com/openai/grade-school-math) | The official repository uses the MIT License. The upstream notice is reproduced in `LICENSES/GSM8K-MIT.txt`. |
+| AIME 2024 | Mathematical Association of America | The 30 translated 2024 competition problems are included for research evaluation and attribution. BrailleBench does not claim ownership of or grant additional rights to the source problems. |
+| CommonsenseQA | [Official repository](https://github.com/jonathanherzig/commonsenseqa) | The official repository provides downloads and citation information but does not identify a dataset license. The translated development records are included for research reproducibility and are not relicensed by BrailleBench. |
+| HotpotQA | [Official site](https://hotpotqa.github.io/) | Distributed under CC BY-SA 4.0. The translated records are an adaptation and retain that attribution and share-alike scope. |
+| 2WikiMultiHopQA | [Official repository](https://github.com/Alab-NII/2wikimultihop) | Distributed under Apache License 2.0. A copy is included in `LICENSES/2WikiMultiHopQA-Apache-2.0.txt`. |
 
-The complete local release candidate includes all five datasets so the benchmark can be
-validated as a research artifact. Do not publish the AIME-derived or CommonsenseQA-derived
-Braille files in a public GitHub repository until the two hold items above are resolved.
+See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for a compact mapping from packaged paths to
+sources, notices, and license references. Users remain responsible for checking upstream terms for
+their intended use, especially redistribution or commercial use of source content for which no
+explicit open dataset license is identified.
 
 ## Dataset citations
 
@@ -76,6 +78,6 @@ the liblouis native library or tables.
 
 ## BrailleBench-authored code
 
-The repository owner still needs to select and add a project-wide code license before public
-release. Without an explicit license, default copyright rules apply and outside users do not
-automatically receive permission to modify or redistribute the code.
+BrailleBench-authored source code, tests, and original documentation are licensed under the MIT
+License in the repository-root `LICENSE` file. That license does not apply to third-party source
+questions and answers embedded in translated benchmark records.
